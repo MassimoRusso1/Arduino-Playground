@@ -4,11 +4,11 @@ int empty_sensor = 369; // 500ml
 int full_sensor =  384; // 1250ml
 int empty = 500;
 int full = 1250;
+int mml = (full - empty)/(full_sensor - empty_sensor);
 
 void setup()
 {
 Serial.begin(9600);
-int mml = (full - empty)/(full_sensor - empty_sensor);
 Serial.println(mml);
 }
 
