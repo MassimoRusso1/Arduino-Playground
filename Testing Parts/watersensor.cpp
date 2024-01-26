@@ -36,5 +36,6 @@ int water = (messwert - empty)*mml;
 Serial.println("Water level is: ");
 Serial.println(water);
 }
+delay(500);
 }
 
