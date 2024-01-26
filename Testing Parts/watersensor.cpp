@@ -18,24 +18,27 @@ int messwert = analogRead(Sensor);
 if (messwert < empty)
 {
 Serial.println("Please fill the tank immediately!");
-int water = (messwert - empty)*mml;
+int water = (messwert - empty)*mml + 500;
 Serial.println("Water level is: ");
 Serial.println(water);
 }
 else if (messwert >= empty && messwert < full)
 {   
 Serial.println("The water level is ok.");
-int water = (messwert - empty)*mml;
+int water = (messwert - empty)*mml + 500;
 Serial.println("Water level is: ");
 Serial.println(water);
 }
 else if (messwert >= full)
 {
 Serial.println("The tank is full.");
-int water = (messwert - empty)*mml;
+int water = (messwert - empty)*mml + 500;
 Serial.println("Water level is: ");
 Serial.println(water);
 }
-delay(500);
+Serial.println("Water level voltage is: ");
+Serial.println(messwert);
+delay(1000);
+
 }
 
