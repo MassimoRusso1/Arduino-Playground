@@ -146,13 +146,15 @@ void readLightLevel() {
   unsigned long currentMillis = millis();
   unsigned long previousMillis = 0;
   const long interval = 2000;
-  // Defines the sensor
-  int light_sensor = A1;
+// Defines the sensor
+#define LightSensor A1
   // Defines the interval between each reading
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
     // Reads the sensor
-    int measured_value = analogRead(Sensor);
+    int measured_value = analogRead(A1);
+    // TODO: Encode the light level in Lux
+    // ...
     if (measured_value <= 100) {
       lcd.setCursor(0, 0);
       lcd.print("The light level");
@@ -172,8 +174,51 @@ void readLightLevel() {
     // Prints the light level on the serial monitor
     Serial.print("Light level: ");
     Serial.println(measured_value);
-    // TODO: Encode the light level in Lux
-    // ...
   }
   lcd.clear();
   previousMillis = currentMillis;
+}
+
+/**
+ * @brief Reads the soil moisture.
+ *
+ * This function is responsible for reading the soil moisture in the system.
+ * It performs the necessary operations to retrieve the soil moisture data.
+ *
+ * @return void
+ */
+void readSoilMoisture() {
+  // Defines the variables used in the function
+  unsigned long currentMillis = millis();
+  unsigned long previousMillis = 0;
+  const long interval = 2000;
+// Defines the sensor
+#define SoilMoistureSensor A2
+  // Defines the interval between each reading
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    // Reads the sensor
+    int measured_value = analogRead(A2);
+    if (measured_value <= 100) {
+      lcd.setCursor(0, 0);
+      lcd.print("The soil moisture");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ", measured_value);
+    } else if (measured_value >= 200) {
+      lcd.setCursor(0, 0);
+      lcd.print("The soil moisture");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ", measured_value);
+    } else {
+      lcd.setCursor(0, 0);
+      lcd.print("The soil moisture");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ", measured_value);
+    }
+    // Prints the soil moisture on the serial monitor
+    Serial.print("Soil moisture: ");
+    Serial.println(measured_value);
+  }
+  lcd.clear();
+  previousMillis = currentMillis;
+}
