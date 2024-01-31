@@ -36,10 +36,13 @@ void setup()
   lcd.scrollDisplayRight();
   lcd.autoscroll();
   // Sets the pins to input or output
-  DDRD &= ~(1 << DDD7);   // Sets the pin 7 to input
-  PORTD |= (1 << PORTD7); // Sets the pin 7 to high
-  DDRB &= ~(1 << DDB2);   // Sets the pin 10 to input
-  DDRB &= ~(1 << DDB4);   // Sets the pin 12 to input
+  pinMode(7,INPUT_PULLUP);
+  //DDRD &= ~(1 << DDD7);
+  //PORTD |= (1 << PORTD7); 
+  pinMode(10, INPUT);
+  //DDRB &= ~(1 << DDB2);
+  pinMode(12, INPUT);
+  //DDRB &= ~(1 << DDB4);
 }
 
 /**
@@ -213,6 +216,7 @@ void readSoilMoisture()
   unsigned long currentMillis = millis();
   unsigned long previousMillis = 0;
   const long interval = 2000;
+  bool shouldWater;
 // Defines the sensor
 #define SoilMoistureSensor A2
   // Defines the interval between each reading
@@ -238,7 +242,7 @@ void readSoilMoisture()
       lcd.setCursor(0, 1);
       lcd.print("is: ");
       lcd.print(measured_value);
-      shouldWater true;
+      shouldWater = true;
     }
     else if (measured_value >= 200)
     {
@@ -247,7 +251,7 @@ void readSoilMoisture()
       lcd.setCursor(0, 1);
       lcd.print("is: ");
       lcd.print(measured_value);
-      shouldWater false;
+      shouldWater = false;
     }
     // Prints the soil moisture on the serial monitor
     Serial.print("Soil moisture: ");
@@ -266,4 +270,8 @@ void readSoilMoisture()
     }
   }
 }
-  
+/**
+ * @brief This function is the main loop of the program.
+ *        It is executed repeatedly after the setup function.
+ */
+void loop(){}
