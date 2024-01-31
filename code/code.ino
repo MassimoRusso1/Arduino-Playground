@@ -1,3 +1,15 @@
+/**
+ * @file code.ino
+ * @brief Arduino code for controlling various sensors and displaying data on an LCD display.
+ *
+ * This code includes libraries for DHT sensors, LCD display, WiFi, and Wire communication.
+ * It defines functions for reading temperature, water level, light level, and soil moisture.
+ * The code initializes the necessary components and variables in the setup function.
+ * The loop function is empty as the code is designed to run in a continuous loop.
+ *
+ * @author [Massimo Russo]
+ * @date [2024-31-01]
+ */
 // Includes all the libraries used in the project
 #include <DHT.h>   // DHT sensor library from Adafruit
 #include <DHT_U.h> // DHT sensor library from Adafruit
