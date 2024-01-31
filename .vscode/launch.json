@@ -7,9 +7,9 @@
       "request": "launch",
       "args": [],
       "stopAtEntry": false,
-      "externalConsole": true,
-      "cwd": "c:/Users/massi/Documents/GitHub/Arduino-Playground/code",
-      "program": "c:/Users/massi/Documents/GitHub/Arduino-Playground/code/build/Debug/outDebug",
+      "externalConsole": false,
+      "cwd": "/workspaces/Arduino-Playground/code",
+      "program": "/workspaces/Arduino-Playground/code/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
