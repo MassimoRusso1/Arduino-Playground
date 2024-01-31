@@ -1,197 +1,277 @@
-#include <DHT.h>
-#include <DHT_U.h>
+// Includes all the libraries used in the project
+#include <DHT.h>   // DHT sensor library from Adafruit
+#include <DHT_U.h> // DHT sensor library from Adafruit
 #include <LiquidCrystal_I2C.h>
-#include <Wire.h>
 #include <WiFi.h>
+#include <Wire.h>
 
+// Defines the LCD display
+/**
+ * @brief LiquidCrystal_I2C class for controlling LCD displays using I2C
+ * communication.
+ *
+ * The LiquidCrystal_I2C class provides a convenient interface for controlling
+ * LCD displays that use I2C communication. It allows you to initialize the LCD
+ * display with the I2C address and the number of columns and rows. You can then
+ * use various methods to control the display, such as writing text, setting the
+ * cursor position, and controlling the backlight.
+ *
+ * @param address The I2C address of the LCD display.
+ * @param columns The number of columns in the LCD display.
+ * @param rows The number of rows in the LCD display.
+ */
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-int button = 7;
-
-#define DHTPIN 10
-#define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
-
-int Sensor = A0;
-int alterMesswert = 0;
-char printBuffer[100];
-
-int LDR = A2;
-int LDRValue = 0;
-
-const char* ssid = "Massimo";
-const char* password = "12345678";
-
+/**
+ * @brief This function is called once at the beginning of the program.
+ * It is used to initialize the necessary components and variables.
+ */
 void setup()
 {
-    Serial.begin(9600);
-    dht.begin();
-    lcd.init();
-    lcd.backlight();
-    pinMode(button, INPUT_PULLUP);
-    pinMode(Sensor, INPUT);
-    pinMode(LDR, INPUT);
-
+  // Initializes the serial monitor
+  Serial.begin(9600);
+  // Initializes the LCD display
+  lcd.init();
+  lcd.backlight();
+  lcd.scrollDisplayRight();
+  lcd.autoscroll();
+  // Sets the pins to input or output
+  pinMode(7,INPUT_PULLUP);
+  //DDRD &= ~(1 << DDD7);
+  //PORTD |= (1 << PORTD7); 
+  pinMode(10, INPUT);
+  //DDRB &= ~(1 << DDB2);
+  pinMode(12, INPUT);
+  //DDRB &= ~(1 << DDB4);
 }
 
-void loop()
-{ 
-    Output();
-    delay(2000);
-    if (button == HIGH)
-    {
-        pump();
-    }
-}
-
-void Einrichtung()
+/**
+ * @brief Reads the temperature from a sensor.
+ *
+ * This function is responsible for reading the temperature from a sensor and
+ * performing any necessary calculations or conversions.
+ *
+ * @return void
+ */
+void readTemperature()
 {
+  // Defines the variables used in the function
+  unsigned long currentMillis = millis();
+  unsigned long previousMillis = 0;
+  const long interval = 2000;
 
-}
-
-void Output()
-{
-    lcd.setCursor(0,0);
-    lcd.print("The output is:");
-    lcd.setCursor(0,1);
-    lcd.print("ON");
-    delay(2000);
-    lcd.clear();
-
-    Temperature();
-    delay(2000);
-    lcd.clear();
-
-    Air_Humidity();
-    delay(2000);
-    lcd.clear();
-
-    Wasserstand();
-    delay(2000);
-    lcd.clear();
-
-    Licht();
-    delay(2000);
-    lcd.clear();
-
-}
-
-void Temperature()
-{
-    float Temperature = dht.readTemperature();
-    lcd.setCursor(0, 0);
-    lcd.print("The Temperature");
-    lcd.setCursor(0, 1);
-    lcd.print("is:");
-    lcd.print(Temperature);
-
-    Serial.print("Temperature: ");
-    Serial.println(Temperature);
-}
-
-void Air_Humidity()
-{
-    float Humidity = dht.readHumidity();
-    lcd.setCursor(0, 0);
-    lcd.print("The Air Humidity");
-    lcd.setCursor(0, 1);
-    lcd.print("is:");
-    lcd.print(Humidity);
-
+// Defines the DHT sensor
+#define DHTPIN 10
+#define DHTTYPE DHT11
+  DHT dht(DHTPIN, DHTTYPE);
+  dht.begin();
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t))
+  {
+    Serial.println("Failed to read Data from DHT sensor!");
+    return;
+  }
+  // Defines the interval between each reading
+  if (currentMillis - previousMillis >= interval)
+  {
+    previousMillis = currentMillis;
+    // Prints the temperature and humidity on the serial monitor
     Serial.print("Humidity: ");
-    Serial.println(Humidity);
+    Serial.println(h);
+    Serial.print("Temperature: ");
+    Serial.print(t);
+    Serial.println(" *C ");
+    // Prints the temperature and humidity on the LCD display
+    lcd.setCursor(0, 0);
+    lcd.print("Temp: ");
+    lcd.print(t);
+    lcd.print(" C");
+    lcd.setCursor(0, 1);
+    lcd.print("Humidity: ");
+    lcd.print(h);
+    lcd.print(" %");
+  }
+  lcd.clear();
+  previousMillis = currentMillis;
 }
 
-void Wasserstand()
+/**
+ * @brief Reads the water level.
+ *
+ * This function is responsible for reading the water level in the system.
+ * It performs the necessary operations to retrieve the water level data.
+ *
+ * @return void
+ */
+void readWaterLevel()
 {
-    int measured_value = analogRead(Sensor);
-    int water_full = 520;
-    int water_empty = 370;
-
+  // Defines the variables used in the function
+  unsigned long currentMillis = millis();
+  unsigned long previousMillis = 0;
+  const long interval = 2000;
+  int water_full = 520;
+  int water_empty = 370;
+  // Defines the interval between each reading
+  if (currentMillis - previousMillis >= interval)
+  {
+    previousMillis = currentMillis;
+    // Reads the sensor
+    int measured_value = analogRead(A0);
     if (measured_value <= water_full)
     {
-        lcd.setCursor(0, 0);
-        lcd.print("The water level");
-        lcd.setCursor(0, 1);
-        lcd.print("is: Full");
+      lcd.setCursor(0, 0);
+      lcd.print("The water level");
+      lcd.setCursor(0, 1);
+      lcd.print("is: Full");
     }
-    else if (measured_value <= water_empty)
+    else if (measured_value >= water_empty)
     {
-        lcd.setCursor(0, 0);
-        lcd.print("The water level");
-        lcd.setCursor(0, 1);
-        lcd.print("is: Empty");
-        buzzer();
+      lcd.setCursor(0, 0);
+      lcd.print("The water level");
+      lcd.setCursor(0, 1);
+      lcd.print("is: Empty");
     }
     else
     {
-        lcd.setCursor(0, 0);
-        lcd.print("The water level");
-        lcd.setCursor(0, 1);
-        lcd.print("is: OK");
+      lcd.setCursor(0, 0);
+      lcd.print("The water level");
+      lcd.setCursor(0, 1);
+      lcd.print("is: Medium");
     }
+  }
+  lcd.clear();
+  previousMillis = currentMillis;
 }
 
-void Licht()
+/**
+ * @brief Reads the light level.
+ *
+ * This function is responsible for reading the light level in the system.
+ * It performs the necessary operations to retrieve the light level data.
+ *
+ * @return void
+ */
+void readLightLevel()
 {
-    Serial.println("Check");
-    LDRValue = analogRead(LDR);
-    lcd.setCursor(0, 0);
-    lcd.print("The light level");
-    lcd.setCursor(0, 1);
-    lcd.print("is:");
-    lcd.print(LDRValue);
-}
-
-void connectToWiFi()
-{
-    WiFi.begin(const_cast<char*>(ssid), const_cast<char*>(password));
-
-    while (WiFi.status() != WL_CONNECTED)
+  // Defines the variables used in the function
+  unsigned long currentMillis = millis();
+  unsigned long previousMillis = 0;
+  const long interval = 2000;
+// Defines the sensor
+#define LightSensor A1
+  // Defines the interval between each reading
+  if (currentMillis - previousMillis >= interval)
+  {
+    previousMillis = currentMillis;
+    // Reads the sensor
+    int measured_value = analogRead(A1);
+    // TODO: Encode the light level in Lux
+    // ...
+    if (measured_value <= 100)
     {
-        lcd.setCursor(0,0);
-        lcd.print("Connecting");
-        delay(500);
-        lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("The light level");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ");
+      lcd.print(measured_value);
     }
-    lcd.setCursor(0, 0);
-    lcd.print("Connected to:");
-    lcd.setCursor(0, 1);
-    lcd.print(ssid);
-    delay(2000);
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("IP Address:");
-    lcd.setCursor(0, 1);
-    lcd.print(WiFi.localIP());
-    delay(2000);
-    lcd.clear();
+    else if (measured_value >= 200)
+    {
+      lcd.setCursor(0, 0);
+      lcd.print("The light level");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ");
+      lcd.print(measured_value);
+    }
+    else
+    {
+      lcd.setCursor(0, 0);
+      lcd.print("The light level");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ");
+      lcd.print(measured_value);
+    }
+    // Prints the light level on the serial monitor
+    Serial.print("Light level: ");
+    Serial.println(measured_value);
+  }
+  lcd.clear();
+  previousMillis = currentMillis;
 }
 
-void buzzer()
-{
-    int buzzer = 8;
-    pinMode(buzzer, OUTPUT);
-    digitalWrite(buzzer, HIGH);
-    delay(1000);
-    digitalWrite(buzzer, LOW);
-    delay(1000);
-}
 
-void feuchtigkeit()
+/**
+ * @brief Reads the soil moisture.
+ *
+ * This function is responsible for reading the soil moisture in the system.
+ * It performs the necessary operations to retrieve the soil moisture data.
+ *
+ * @return void
+ */
+void readSoilMoisture()
 {
-    int feuchtigkeit = 0;
-    int feuchtigkeitPin = A2;
-    feuchtigkeit = analogRead(feuchtigkeitPin);
-    Serial.println(feuchtigkeit);
-    delay(1000);
+  // Defines the variables used in the function
+  unsigned long currentMillis = millis();
+  unsigned long previousMillis = 0;
+  const long interval = 2000;
+  bool shouldWater;
+// Defines the sensor
+#define SoilMoistureSensor A2
+  // Defines the interval between each reading
+  if (currentMillis - previousMillis >= interval)
+  {
+    previousMillis = currentMillis;
+    // Reads the sensor
+    int measured_value = analogRead(A2);
+    // TODO: Encode the soil moisture in percentage
+    if (measured_value <= 100)
+    {
+      lcd.setCursor(0, 0);
+      lcd.print("The soil moisture");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ");
+      lcd.print(measured_value);
+      shouldWater = true;
+    }
+    else if (measured_value >= 100)
+    {
+      lcd.setCursor(0, 0);
+      lcd.print("The soil moisture");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ");
+      lcd.print(measured_value);
+      shouldWater = true;
+    }
+    else if (measured_value >= 200)
+    {
+      lcd.setCursor(0, 0);
+      lcd.print("The soil moisture");
+      lcd.setCursor(0, 1);
+      lcd.print("is: ");
+      lcd.print(measured_value);
+      shouldWater = false;
+    }
+    // Prints the soil moisture on the serial monitor
+    Serial.print("Soil moisture: ");
+    Serial.println(measured_value);
+  }
+  lcd.clear();
+  previousMillis = currentMillis;
+  // Activates the pump
+  if (shouldWater)
+  {
+    int measured_value = 0;
+    while (measured_value < 200) // Activate the pump until the soil moisture is 200
+    {
+      digitalWrite(0, LOW);
+      measured_value = analogRead(A2);
+    }
+  }
 }
-
-void pump ()
-{
-    int pump = 0;
-    pinMode(pump, OUTPUT);
-    digitalWrite(pump, HIGH);
-    delay(1000);
-    digitalWrite(pump, LOW);
-}
+/**
+ * @brief This function is the main loop of the program.
+ *        It is executed repeatedly after the setup function.
+ */
+void loop(){}
