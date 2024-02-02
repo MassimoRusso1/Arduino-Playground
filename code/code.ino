@@ -1,15 +1,3 @@
-/**
- * @file code.ino
- * @brief Arduino code for controlling various sensors and displaying data on an LCD display.
- *
- * This code includes libraries for DHT sensors, LCD display, WiFi, and Wire communication.
- * It defines functions for reading temperature, water level, light level, and soil moisture.
- * The code initializes the necessary components and variables in the setup function.
- * The loop function is empty as the code is designed to run in a continuous loop.
- *
- * @author [Massimo Russo]
- * @date [2024-31-01]
- */
 // Includes all the libraries used in the project
 #include <DHT.h>   // DHT sensor library from Adafruit
 #include <DHT_U.h> // DHT sensor library from Adafruit
@@ -17,27 +5,8 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-// Defines the LCD display
-/**
- * @brief LiquidCrystal_I2C class for controlling LCD displays using I2C
- * communication.
- *
- * The LiquidCrystal_I2C class provides a convenient interface for controlling
- * LCD displays that use I2C communication. It allows you to initialize the LCD
- * display with the I2C address and the number of columns and rows. You can then
- * use various methods to control the display, such as writing text, setting the
- * cursor position, and controlling the backlight.
- *
- * @param address The I2C address of the LCD display.
- * @param columns The number of columns in the LCD display.
- * @param rows The number of rows in the LCD display.
- */
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-/**
- * @brief This function is called once at the beginning of the program.
- * It is used to initialize the necessary components and variables.
- */
 void setup()
 {
   // Initializes the serial monitor
@@ -57,14 +26,6 @@ void setup()
   //DDRB &= ~(1 << DDB4);
 }
 
-/**
- * @brief Reads the temperature from a sensor.
- *
- * This function is responsible for reading the temperature from a sensor and
- * performing any necessary calculations or conversions.
- *
- * @return void
- */
 void readTemperature()
 {
   // Defines the variables used in the function
@@ -109,14 +70,6 @@ void readTemperature()
   previousMillis = currentMillis;
 }
 
-/**
- * @brief Reads the water level.
- *
- * This function is responsible for reading the water level in the system.
- * It performs the necessary operations to retrieve the water level data.
- *
- * @return void
- */
 void readWaterLevel()
 {
   // Defines the variables used in the function
@@ -157,14 +110,6 @@ void readWaterLevel()
   previousMillis = currentMillis;
 }
 
-/**
- * @brief Reads the light level.
- *
- * This function is responsible for reading the light level in the system.
- * It performs the necessary operations to retrieve the light level data.
- *
- * @return void
- */
 void readLightLevel()
 {
   // Defines the variables used in the function
@@ -213,15 +158,6 @@ void readLightLevel()
   previousMillis = currentMillis;
 }
 
-
-/**
- * @brief Reads the soil moisture.
- *
- * This function is responsible for reading the soil moisture in the system.
- * It performs the necessary operations to retrieve the soil moisture data.
- *
- * @return void
- */
 void readSoilMoisture()
 {
   // Defines the variables used in the function
@@ -282,8 +218,4 @@ void readSoilMoisture()
     }
   }
 }
-/**
- * @brief This function is the main loop of the program.
- *        It is executed repeatedly after the setup function.
- */
 void loop(){}
