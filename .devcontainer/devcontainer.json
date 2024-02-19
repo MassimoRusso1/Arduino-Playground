@@ -28,7 +28,9 @@
         "ElecTreeFrying.insert-random-text",
         "streetsidesoftware.code-spell-checker-british-english",
         "streetsidesoftware.code-spell-checker-german",
-        "vsciot-vscode.vscode-arduino"
+        "vsciot-vscode.vscode-arduino",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
       ]
 		}
 	}
