@@ -14,6 +14,11 @@ iot_grower::iot_grower()
     DDRB = DDRB | B0000000;  // Sets the pins 8-13 to output
 }
 
+iot_grower::lcd_display()
+{
+    
+}
+
 iot_grower::void readTemperature()
 {
 // Defines the DHT sensor
