@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/workspaces/Arduino-Playground/code",
-      "program": "/workspaces/Arduino-Playground/code/build/Debug/outDebug",
+      "cwd": "/workspaces/Arduino-Playground/src",
+      "program": "/workspaces/Arduino-Playground/src/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
