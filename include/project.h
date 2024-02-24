@@ -18,7 +18,6 @@ namespace iot_grower {
   public:
     iot_grower();
 
-    void configureTimer(unsigned long duration, void (*ISR)());
     static void timer1_ISR();
     static void timer2_ISR();
     void button_interrupt();
@@ -27,19 +26,14 @@ namespace iot_grower {
     void readMoisture();
     void readWaterLevel();
     void updateCloud();
-    void activateLamp();
-    void deactivateLamp();
+    void activate_Lamp();
+    void deactivate_Lamp();
+    void activate_Pump();
+    void deactivate_Pump();
   private:
-    float humidity;
-    float temperature;
     int light;
     int moisture;
     int water_level;
-    float humidity_cloud;
-    float temperature_cloud;
-    int light_cloud;
-    int moisture_cloud;
-    int water_level_cloud;
     int light_sensor;
     int moisture_sensor;
     int water_level_sensor;
@@ -47,6 +41,8 @@ namespace iot_grower {
     int water_level_sensor_full;
     int water_level_empty;
     int water_level_full;
+    float humidity_sensor;
+    float temperature_sensor;
   };
 }
 
