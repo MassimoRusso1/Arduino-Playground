@@ -27,8 +27,8 @@ namespace iot_grower
     lcd.noDisplay(); // Display nach Initialisierung ausschalten
 
     // Timer-Konfiguration
-    unsigned long timer_overflow_count1 = (10 * 60 * 16000000) / 1024;
-    unsigned long timer_overflow_count2 = (20 * 60 * 16000000) / 1024;
+    unsigned long timer_overflow_count1 = (10 * 60 * 16000000) / 1024; // Calculate the timer overflow count for 10 minutes
+    unsigned long timer_overflow_count2 = (20 * 60 * 16000000) / 1024; // Calculate the timer overflow count for 20 minutes
     TCCR1A = 0;
     TCCR1B = 0;
     TCNT1 = 0;
@@ -207,8 +207,9 @@ namespace iot_grower
     byte low = ADCL;
     byte high = ADCH;
     moisture_sensor = (high << 8) | low;
-    // Evaluate the moisture value
+    // Evaluate the moisture value to percentage
     moisture = moisture_sensor;
+
     // Send the value to the cloud
     Serial.println("M");
     Serial.println(moisture);
