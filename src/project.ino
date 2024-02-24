@@ -1,5 +1,4 @@
 #include "project.h"
-// #include "thingProperties.h"
 
 namespace iot_grower
 {
@@ -28,7 +27,6 @@ namespace iot_grower
     lcd.noDisplay(); // Display nach Initialisierung ausschalten
 
     // Timer-Konfiguration
-
     unsigned long timer_overflow_count1 = (10 * 60 * 16000000) / 1024;
     unsigned long timer_overflow_count2 = (20 * 60 * 16000000) / 1024;
     TCCR1A = 0;
@@ -103,6 +101,18 @@ namespace iot_grower
         else if (i == 1)
         {
           lcd.print("C");
+        }
+        else if (i == 2)
+        {
+          lcd.print("lx");
+        }
+        else if (i == 3)
+        {
+          lcd.print("%");
+        }
+        else if (i == 4)
+        {
+          lcd.print("%");
         }
         unsigned long previousMillis = millis();
         while (millis() - previousMillis < interval){}
