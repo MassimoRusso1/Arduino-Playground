@@ -11,9 +11,6 @@
 
 #define BUTTON_PIN 2    // Pin für den Taster
 
-#define TIMER1_DURATION 10 // Dauer des Timers 1 in Minuten
-#define TIMER2_DURATION 20 // Dauer des Timers 2 in Minuten
-
 namespace iot_grower {
   extern LiquidCrystal_I2C lcd;
 
