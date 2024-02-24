@@ -16,6 +16,11 @@ iot_grower::iot_grower() {
   setDebugMessageLevel(2);
   ArduinoCloud.printDebugInfo();
 
+  // Setzen der Pin-Modi
+  DDRD |= (1 << 6); // Setzen des Lampen-Pins als Ausgang
+  PORTD |= (1 << 6); // Lampen-Pin auf HIGH setzen
+
+
   // Button Setup
   DDRD &= ~(1 << BUTTON_PIN); // Setzen des Button-Pins als Eingang
   PORTD |= (1 << BUTTON_PIN); // Pull-up-Widerstand aktivieren
