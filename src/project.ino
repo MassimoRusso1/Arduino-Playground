@@ -2,18 +2,28 @@
 
 namespace iot_grower
 {
-  LiquidCrystal_I2C lcd(0x27, 16, 2);
   iot_grower myGrower;
+  LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+  // Status-Flags
+  volatile bool buttonFlag = false;
+  volatile bool executeReadDHT = false;
+  volatile bool executeReadLight = false;
+  volatile bool executeReadMoisture = false;
+  volatile bool executeReadWaterLevel = false;
 
   iot_grower::iot_grower()
   {
-    iot_grower myGrower;
     // Initialisierung der seriellen Kommunikation
     Serial.begin(9600);
 
     // Setzen der Pin-Modi
     DDRD |= (1 << 6);  // Setzen des Lampen-Pins als Ausgang
     PORTD |= (1 << 6); // Lampen-Pin auf HIGH setzen
+
+    // Setzen des Lüfter Pins
+    DDRD |= (1 << 3);
+    PORTD |= (1 << 3);
 
     // Button Setup
     DDRD &= ~(1 << BUTTON_PIN); // Setzen des Button-Pins als Eingang
@@ -26,9 +36,11 @@ namespace iot_grower
     lcd.backlight();
     lcd.noDisplay(); // Display nach Initialisierung ausschalten
 
+    cli();
     // Timer-Konfiguration
-    unsigned long timer_overflow_count1 = (10 * 60 * 16000000) / 1024; // Calculate the timer overflow count for 10 minutes
-    unsigned long timer_overflow_count2 = (20 * 60 * 16000000) / 1024; // Calculate the timer overflow count for 20 minutes
+    unsigned long timer_overflow_count1 = (600 * 15625); // Calculate the timer overflow count for 10 minutes
+    unsigned long timer_overflow_count2 = (1200 * 3125); // Calculate the timer overflow count for 20 minutes
+    unsigned long timer_overflow_count3 = 15999;         // TImer overflow count for 1 millisecond
     TCCR1A = 0;
     TCCR1B = 0;
     TCNT1 = 0;
@@ -45,30 +57,42 @@ namespace iot_grower
     TCCR2B |= (1 << CS22) | (1 << CS20);
     TIMSK2 |= (1 << OCIE2A);
 
+    TCCR0A = 0;
+    TCCR0B = 0;
+    TCNT0 = 0;
+    OCR0A = 6249;
+    TCCR0B |= (1 << WGM12);
+    TCCR0B |= (1 << CS02) | (1 << CS00);
+    TIMSK0 |= (1 << OCIE0A);
     // Globale Interrupts aktivieren
     sei();
   }
 
-  void iot_grower::timer1_ISR()
+  ISR(TIMER1_COMPA_vect)
   {
-    myGrower.readLight();
-    myGrower.readMoisture();
+    executeReadLight = true;
+    executeReadMoisture = true;
   }
 
-  void iot_grower::timer2_ISR()
+  ISR(TIMER2_COMPA_vect)
   {
-    myGrower.readDHT();
-    myGrower.readWaterLevel();
+    executeReadDHT = true;
+    executeReadWaterLevel = true;
+  }
+
+  ISR(TIMER0_COMPA_vect)
+  {
+    buttonFlag = true;
+    myGrower.executeTasks();
   }
 
   void iot_grower::button_interrupt()
   {
-    iot_grower myGrower; // Instanz der Klasse erstellen
     if (!(PIND & (1 << BUTTON_PIN)))
     {
       lcd.display(); // Display einschalten
       const long interval = 2000;
-      int values[] = {humidity_sensor, temperature_sensor, light, moisture, water_level};
+      int values[] = {humiditySensor, temperatureSensor, light, moisture, waterLevel};
       for (int i = 0; i < 5; i++)
       {
         lcd.setCursor(0, 0);
@@ -115,7 +139,9 @@ namespace iot_grower
           lcd.print("%");
         }
         unsigned long previousMillis = millis();
-        while (millis() - previousMillis < interval){}
+        while (millis() - previousMillis < interval)
+        {
+        }
         lcd.clear();
       }
     }
@@ -128,29 +154,27 @@ namespace iot_grower
 
   void iot_grower::readDHT()
   {
-    iot_grower myGrower; // Instanz der Klasse erstellen
     // Define the variables used in the function
     DHT dht(DHTPIN, DHTTYPE);
     // Read the temperature and humidity values
-    humidity_sensor = dht.readHumidity();
-    temperature_sensor = dht.readTemperature();
+    humiditySensor = dht.readHumidity();
+    temperatureSensor = dht.readTemperature();
     // Check if the values are valid
-    if (isnan(humidity_sensor) || isnan(temperature_sensor))
+    if (isnan(humiditySensor) || isnan(temperatureSensor))
     {
       return;
     }
     // Send the values to the cloud
     Serial.println("H");
-    Serial.println(humidity_sensor);
+    Serial.println(humiditySensor);
     Serial.println("T");
-    Serial.println(temperature_sensor);
+    Serial.println(temperatureSensor);
   }
 
   void iot_grower::readLight()
   {
-    iot_grower myGrower; // Instanz der Klasse erstellen
     // Define the variables used in the function
-    const int analogInPin = A0;
+    const int analogInPin = A1;
     int sensorValue = 0;
     int light = 0;
     // Read the light sensor
@@ -163,27 +187,26 @@ namespace iot_grower
     }
     byte low = ADCL;
     byte high = ADCH;
-    light_sensor = (high << 8) | low;
+    lightSensor = (high << 8) | low;
     // Evaluate the light value
-    if (light_sensor < 100) // TODO: Change the values to the ones that are going to be
-                            // used in the project
+    if (lightSensor < 100)
     {
-      myGrower.activate_Lamp();
+      activateLamp();
     }
-    else if (light_sensor < 200)
+    else if (lightSensor < 200)
     {
-      myGrower.activate_Lamp();
+      activateLamp();
     }
-    else if (light_sensor < 300)
+    else if (lightSensor < 300)
     {
-      myGrower.deactivate_Lamp();
+      deactivateLamp();
     }
     else
     {
-      myGrower.deactivateLamp();
+      deactivateLamp();
     }
     // Evaluate the light value to lux
-    light = light_sensor;
+    light = lightSensor;
     // Send the value to the cloud
     Serial.println("L");
     Serial.println(light);
@@ -191,9 +214,8 @@ namespace iot_grower
 
   void iot_grower::readMoisture()
   {
-    iot_grower myGrower; // Instanz der Klasse erstellen
     // Define the variables used in the function
-    const int analogInPin = A1;
+    const int analogInPin = A0;
     int sensorValue = 0;
     int moisture = 0;
     // Read the moisture sensor
@@ -206,9 +228,9 @@ namespace iot_grower
     }
     byte low = ADCL;
     byte high = ADCH;
-    moisture_sensor = (high << 8) | low;
+    moistureSensor = (high << 8) | low;
     // Evaluate the moisture value to percentage
-    moisture = moisture_sensor;
+    moisture = moistureSensor;
 
     // Send the value to the cloud
     Serial.println("M");
@@ -217,7 +239,6 @@ namespace iot_grower
 
   void iot_grower::readWaterLevel()
   {
-    iot_grower myGrower; // Instanz der Klasse erstellen
     // Define the variables used in the function
     const int analogInPin = A2;
     int sensorValue = 0;
@@ -232,24 +253,65 @@ namespace iot_grower
     }
     byte low = ADCL;
     byte high = ADCH;
-    water_level = (high << 8) | low;
+    waterLevelSensor = (high << 8) | low;
     // Evaluate the water level value
-    water_level_sensor_empty = 0;
-    water_level_sensor_full = 0;
-    water_level_empty = 0;
-    water_level_full = 0;
-    water_level_cloud = water_level; // Store the value for the upload to the cloud
+    waterLevelSensorEmpty = 0;
+    waterLevelSensorFull = 0;
+    waterLevelEmpty = 0;
+    waterLevelFull = 0;
+    waterLevel = waterLevelSensor;
   }
 
-  void iot_grower::activate_Lamp() { PORTD &= ~(1 << 6); }
-  void iot_grower::deactivate_Lamp() { PORTD |= (1 << 6); }
-  void iot_grower::activate_pump() { PORTD &= ~(1 << 7); }
-  void iot_grower::deactivate_pump() { PORTD |= (1 << 7); }
+  void iot_grower::activateLamp()
+  {
+    PORTD &= ~(1 << 6);
+  }
+
+  void iot_grower::deactivateLamp()
+  {
+    PORTD |= (1 << 6);
+  }
+
+  void iot_grower::activatePump()
+  {
+    PORTD &= ~(1 << 7);
+  }
+
+  void iot_grower::deactivatePump()
+  {
+    PORTD |= (1 << 7);
+  }
+
+  void iot_grower::executeTasks()
+  {
+    if (buttonFlag)
+    {
+      myGrower.button_interrupt();
+      buttonFlag = false; // Flag zurücksetzen
+    }
+    if (executeReadDHT)
+    {
+      myGrower.readDHT();
+      executeReadDHT = false; // Flag zurücksetzen
+    }
+    if (executeReadLight)
+    {
+      myGrower.readLight();
+      executeReadLight = false; // Flag zurücksetzen
+    }
+    if (executeReadMoisture)
+    {
+      myGrower.readMoisture();
+      executeReadMoisture = false; // Flag zurücksetzen
+    }
+    if (executeReadWaterLevel)
+    {
+      myGrower.readWaterLevel();
+      executeReadWaterLevel = false; // Flag zurücksetzen
+    }
+  }
 } // namespace iot_grower
 
-void setup()
-{
-  iot_grower::iot_grower();
-}
+void setup() { iot_grower::myGrower = iot_grower::iot_grower(); }
 
 void loop() {}
