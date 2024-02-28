@@ -7,15 +7,17 @@ namespace iot_grower
 
   // Status-Flags
   volatile bool buttonFlag = false;
-  volatile bool executeReadDHT = false;
-  volatile bool executeReadLight = false;
-  volatile bool executeReadMoisture = false;
-  volatile bool executeReadWaterLevel = false;
+  volatile bool executeSensors = false;
 
   iot_grower::iot_grower()
   {
     // Initialisierung der seriellen Kommunikation
     Serial.begin(9600);
+
+    // Initialisierung des LCD-Bildschirms
+    lcd.init();
+    lcd.backlight();
+    lcd.print("IoT-Grower");
 
     // Setzen der Pin-Modi
     DDRD |= (1 << 6);  // Setzen des Lampen-Pins als Ausgang
@@ -25,26 +27,25 @@ namespace iot_grower
     DDRD |= (1 << 3);
     PORTD |= (1 << 3);
 
+    // Setzen des Pumpen Pins
+    DDRD |= (1 << 7);
+    PORTD &= ~(1 << 7);
+
+    // Setzen der Refferenzspannung
+    ADMUX |= (1 << REFS0);
+
     // Button Setup
     DDRD &= ~(1 << BUTTON_PIN); // Setzen des Button-Pins als Eingang
     PORTD |= (1 << BUTTON_PIN); // Pull-up-Widerstand aktivieren
     PCICR |= (1 << PCIE2);      // Pin Change Interrupt für Port D aktivieren
     PCMSK2 |= (1 << PCINT19);   // Pin Change Interrupt für Button-Pin aktivieren
 
-    // Initialisierung des LCD-Bildschirms
-    lcd.init();
-    lcd.backlight();
-    lcd.noDisplay(); // Display nach Initialisierung ausschalten
-
     cli();
     // Timer-Konfiguration
-    unsigned long timer_overflow_count1 = (600 * 15625); // Calculate the timer overflow count for 10 minutes
-    unsigned long timer_overflow_count2 = (1200 * 3125); // Calculate the timer overflow count for 20 minutes
-    unsigned long timer_overflow_count3 = 15999;         // TImer overflow count for 1 millisecond
     TCCR1A = 0;
     TCCR1B = 0;
     TCNT1 = 0;
-    OCR1A = timer_overflow_count1;
+    OCR1A = 62499;
     TCCR1B |= (1 << WGM12);
     TCCR1B |= (1 << CS12) | (1 << CS10);
     TIMSK1 |= (1 << OCIE1A);
@@ -52,37 +53,32 @@ namespace iot_grower
     TCCR2A = 0;
     TCCR2B = 0;
     TCNT2 = 0;
-    OCR2A = timer_overflow_count2;
+    OCR2A = 249;
     TCCR2B |= (1 << WGM12);
     TCCR2B |= (1 << CS22) | (1 << CS20);
     TIMSK2 |= (1 << OCIE2A);
 
-    TCCR0A = 0;
-    TCCR0B = 0;
-    TCNT0 = 0;
-    OCR0A = 6249;
-    TCCR0B |= (1 << WGM12);
-    TCCR0B |= (1 << CS02) | (1 << CS00);
-    TIMSK0 |= (1 << OCIE0A);
     // Globale Interrupts aktivieren
     sei();
+
+    // Initialisierung der Sensoren
+    DHT dht(DHTPIN, DHTTYPE);
+    dht.begin();
+
+    lcd.clear();
   }
 
   ISR(TIMER1_COMPA_vect)
   {
-    executeReadLight = true;
-    executeReadMoisture = true;
+    i++;
+    if (i == 20)
+    {
+      executeSensors = true;
+      i = 0;
+    }
   }
-
   ISR(TIMER2_COMPA_vect)
   {
-    executeReadDHT = true;
-    executeReadWaterLevel = true;
-  }
-
-  ISR(TIMER0_COMPA_vect)
-  {
-    buttonFlag = true;
     myGrower.executeTasks();
   }
 
@@ -90,7 +86,6 @@ namespace iot_grower
   {
     if (!(PIND & (1 << BUTTON_PIN)))
     {
-      lcd.display(); // Display einschalten
       const long interval = 2000;
       int values[] = {humiditySensor, temperatureSensor, light, moisture, waterLevel};
       for (int i = 0; i < 5; i++)
@@ -152,114 +147,164 @@ namespace iot_grower
     lcd.noDisplay(); // Display ausschalten
   }
 
-  void iot_grower::readDHT()
+  void iot_grower::readSensors()
   {
-    // Define the variables used in the function
-    DHT dht(DHTPIN, DHTTYPE);
-    // Read the temperature and humidity values
     humiditySensor = dht.readHumidity();
     temperatureSensor = dht.readTemperature();
-    // Check if the values are valid
     if (isnan(humiditySensor) || isnan(temperatureSensor))
     {
       return;
     }
-    // Send the values to the cloud
-    Serial.println("H");
+    Serial.print("H");
     Serial.println(humiditySensor);
-    Serial.println("T");
+    Serial.print("T");
     Serial.println(temperatureSensor);
-  }
 
-  void iot_grower::readLight()
-  {
-    // Define the variables used in the function
-    const int analogInPin = A1;
-    int sensorValue = 0;
-    int light = 0;
-    // Read the light sensor
-    ADMUX |= (1 << REFS0);
-    ADMUX |= (1 << ADLAR);
-
-    ADCSRA |= (1 << ADSC);
+    ADMUX = (ADMUX & 0xF0);
+    ADCRSA |= (1 << ADSC);
     while (ADCSRA & (1 << ADSC))
     {
     }
-    byte low = ADCL;
-    byte high = ADCH;
-    lightSensor = (high << 8) | low;
-    // Evaluate the light value
+    lightSensor = ADC;
+    // Auswerten des gemessenen Wertes und Zuordnung zu einer Helligkeitsstufe
     if (lightSensor < 100)
     {
-      activateLamp();
+      light = 0;
     }
     else if (lightSensor < 200)
     {
-      activateLamp();
+      light = 1;
     }
     else if (lightSensor < 300)
     {
-      deactivateLamp();
+      light = 2;
+    }
+    else if (lightSensor < 400)
+    {
+      light = 3;
+    }
+    else if (lightSensor < 500)
+    {
+      light = 4;
+    }
+    else if (lightSensor < 600)
+    {
+      light = 5;
+    }
+    else if (lightSensor < 700)
+    {
+      light = 6;
+    }
+    else if (lightSensor < 800)
+    {
+      light = 7;
+    }
+    else if (lightSensor < 900)
+    {
+      light = 8;
+    }
+    else if (lightSensor < 1000)
+    {
+      light = 9;
     }
     else
     {
-      deactivateLamp();
+      light = 10;
     }
-    // Evaluate the light value to lux
-    light = lightSensor;
-    // Send the value to the cloud
-    Serial.println("L");
+    Serial.print("L");
     Serial.println(light);
-  }
 
-  void iot_grower::readMoisture()
-  {
-    // Define the variables used in the function
-    const int analogInPin = A0;
-    int sensorValue = 0;
-    int moisture = 0;
-    // Read the moisture sensor
-    ADMUX |= (1 << REFS0);
-    ADMUX |= (1 << ADLAR);
-
-    ADCSRA |= (1 << ADSC);
+    ADMUX = (ADMUX & 0xF0) | 0x01;
+    ADCRSA |= (1 << ADSC);
     while (ADCSRA & (1 << ADSC))
     {
     }
-    byte low = ADCL;
-    byte high = ADCH;
-    moistureSensor = (high << 8) | low;
-    // Evaluate the moisture value to percentage
-    moisture = moistureSensor;
-
-    // Send the value to the cloud
-    Serial.println("M");
+    moistureSensor = ADC;
+    // Auswerten des gemessenen Wertes und umrechnen in Prozent
+    moisture = map(moistureSensor, 0, 1023, 100, 0);
+    Serial.print("M");
     Serial.println(moisture);
-  }
 
-  void iot_grower::readWaterLevel()
-  {
-    // Define the variables used in the function
-    const int analogInPin = A2;
-    int sensorValue = 0;
-    int water_level = 0;
-    // Read the water level sensor
-    ADMUX |= (1 << REFS0);
-    ADMUX |= (1 << ADLAR);
-
-    ADCSRA |= (1 << ADSC);
+    ADMUX = (ADMUX & 0xF0) | 0x02;
+    ADCRSA |= (1 << ADSC);
     while (ADCSRA & (1 << ADSC))
     {
     }
-    byte low = ADCL;
-    byte high = ADCH;
-    waterLevelSensor = (high << 8) | low;
-    // Evaluate the water level value
+    waterLevelSensor = ADC;
+    // Auswerten des gemessenen Wertes und umrechnen in Prozent
     waterLevelSensorEmpty = 0;
-    waterLevelSensorFull = 0;
-    waterLevelEmpty = 0;
-    waterLevelFull = 0;
-    waterLevel = waterLevelSensor;
+    waterLevelSensorFull = 1023;
+    waterLevel = map(waterLevelSensor, waterLevelSensorEmpty, waterLevelSensorFull, 0, 100);
+    Serial.print("W");
+    Serial.println(waterLevel);
+
+    // Gießen der Pflanze
+    if (moisture < 30 && waterLevel > 30)
+    {
+      activatePump();
+      unsigned long previousMillis = millis();
+      while (millis() - previousMillis < 5000)
+      {
+      }
+      deactivatePump();
+      else if (moisture > 30 && waterLevel < 30)
+      {
+        activatePump();
+        unsigned long previousMillis = millis();
+        while (millis() - previousMillis < 5000)
+        {
+        }
+        deactivatePump();
+      }
+      else if (moisture < 30 && waterLevel < 30)
+      {
+        activatePump();
+        unsigned long previousMillis = millis();
+        while (millis() - previousMillis < 5000)
+        {
+        }
+        deactivatePump();
+      }
+      else if (moisture > 30 && waterLevel > 30)
+      {
+        deactivatePump();
+      }
+    }
+  }
+
+  void iot_grower::waterPlant()
+  {
+    if (moisture < 20 && waterLevel > 80)
+    {
+      PORTD |= (1 << 7);
+      unsigned long previousMillis = millis();
+      while (millis() - previousMillis < 2000)
+      {
+      }
+      PORTD &= ~(1 << 7);
+      else if (moisture > 30 && moisture < 50 && waterLevel > 30)
+      {
+        PORTD |= (1 << 7);
+        unsigned long previousMillis = millis();
+        while (millis() - previousMillis < 5000)
+        {
+        }
+        PORTD &= ~(1 << 7);
+      }
+      else if (moisture < 30 && waterLevel < 30)
+      {
+        activatePump();
+        unsigned long previousMillis = millis();
+        while (millis() - previousMillis < 5000)
+        {
+        }
+        PORTD &= ~(1 << 7);
+      }
+      else if (moisture > 30 && waterLevel > 30)
+      {
+        PORTD &= ~(1 << 7);
+      }
+    }
   }
 
   void iot_grower::activateLamp()
@@ -272,42 +317,22 @@ namespace iot_grower
     PORTD |= (1 << 6);
   }
 
-  void iot_grower::activatePump()
+  void iot_grower::activateFan()
   {
-    PORTD &= ~(1 << 7);
+    PORTD &= ~(1 << 3);
   }
 
-  void iot_grower::deactivatePump()
+  void iot_grower::deactivateFan()
   {
-    PORTD |= (1 << 7);
+    PORTD |= (1 << 3);
   }
 
   void iot_grower::executeTasks()
   {
-    if (buttonFlag)
+    if (executeSensors)
     {
-      myGrower.button_interrupt();
-      buttonFlag = false; // Flag zurücksetzen
-    }
-    if (executeReadDHT)
-    {
-      myGrower.readDHT();
-      executeReadDHT = false; // Flag zurücksetzen
-    }
-    if (executeReadLight)
-    {
-      myGrower.readLight();
-      executeReadLight = false; // Flag zurücksetzen
-    }
-    if (executeReadMoisture)
-    {
-      myGrower.readMoisture();
-      executeReadMoisture = false; // Flag zurücksetzen
-    }
-    if (executeReadWaterLevel)
-    {
-      myGrower.readWaterLevel();
-      executeReadWaterLevel = false; // Flag zurücksetzen
+      readSensors();
+      executeSensors = false;
     }
   }
 } // namespace iot_grower

@@ -29,6 +29,8 @@ namespace iot_grower {
         void deactivateLamp();
         void activatePump();
         void deactivatePump();
+        void activateFan();
+        void deactivateFan();
         void executeTasks();
 
     private:
