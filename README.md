@@ -1,1 +1,0 @@
-This is our repository for a study project of the lecture Microcomputer Technology 1 & 2 with a microcomputer (Arduino). Our project is to be an automated greenhouse for home use with IoT connection.
