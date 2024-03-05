@@ -69,6 +69,17 @@ void receiveData() {
     receivedBytes++;
     // If all 5 bytes have been received, reset the data index and process the data
     if (receivedBytes >= 5) {
+      // Print received sensor data for debugging
+      Serial.println("Humidity:");
+      Serial.println(HumiditySensor);
+      Serial.println("Temperature:");
+      Serial.println(TemperatureSensor);
+      Serial.println("Moisture:");
+      Serial.println(Moisture);
+      Serial.println("Light:");
+      Serial.println(Light);
+      Serial.println("WaterLevel:");
+      Serial.println(WaterLevel);
       // Upload sensor data to the cloud
       uploadToCloud();
       // Reset the data index
